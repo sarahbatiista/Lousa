@@ -20,6 +20,7 @@
             height: 90vh;
             background-color: #000;
             cursor: crosshair;
+            touch-action: none; /* Para evitar o comportamento padrão de toque */
         }
 
         /* Estilos dos Post-its */
@@ -32,6 +33,7 @@
             padding: 10px;
             box-sizing: border-box;
             cursor: pointer;
+            user-select: none; /* Para evitar seleção do texto do post-it */
         }
 
         /* Caixa para digitar no post-it */
@@ -61,10 +63,24 @@
         #add-post-it:hover {
             background-color: #e64a19;
         }
+
+        /* Responsividade para dispositivos móveis */
+        @media (max-width: 768px) {
+            .post-it {
+                width: 120px;
+                height: 120px;
+            }
+
+            #add-post-it {
+                font-size: 14px;
+                padding: 8px 16px;
+            }
+        }
     </style>
 </head>
 <body>
-    <div id="lousa" onmousedown="startDrawing(event)" onmouseup="stopDrawing()" onmousemove="draw(event)">
+    <div id="lousa" onmousedown="startDrawing(event)" onmouseup="stopDrawing()" onmousemove="draw(event)" 
+         ontouchstart="startDrawing(event)" ontouchend="stopDrawing()" ontouchmove="draw(event)">
     </div>
 
     <button id="add-post-it" onclick="addPostIt()">Adicionar Post-It</button>
@@ -75,6 +91,10 @@
         let canvas = document.getElementById('lousa');
         let ctx = canvas.getContext('2d');
 
+        // Ajuste para a tela do celular
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight * 0.9;
+
         // Carregar o desenho do LocalStorage
         let drawingData = localStorage.getItem('drawingData');
         if (drawingData) {
@@ -82,6 +102,7 @@
         }
 
         function startDrawing(event) {
+            event.preventDefault(); // Para evitar que o evento toque também arraste a página
             isDrawing = true;
             draw(event);
         }
@@ -94,14 +115,28 @@
 
         function draw(event) {
             if (!isDrawing) return;
+            let x, y;
+
+            // Para mouse
+            if (event.type === 'mousemove' || event.type === 'mousedown') {
+                x = event.clientX;
+                y = event.clientY;
+            }
+
+            // Para toque
+            if (event.type === 'touchmove' || event.type === 'touchstart') {
+                x = event.touches[0].clientX;
+                y = event.touches[0].clientY;
+            }
+
             ctx.lineWidth = 5;
             ctx.lineCap = 'round';
             ctx.strokeStyle = '#fff';
 
-            ctx.lineTo(event.clientX, event.clientY);
+            ctx.lineTo(x, y);
             ctx.stroke();
             ctx.beginPath();
-            ctx.moveTo(event.clientX, event.clientY);
+            ctx.moveTo(x, y);
         }
 
         // Função para salvar o desenho no LocalStorage
@@ -143,6 +178,31 @@
                 postIt.onmouseup = function() {
                     document.removeEventListener('mousemove', onMouseMove);
                     postIt.onmouseup = null;
+                    savePostIts();
+                };
+            };
+
+            // Mover no toque
+            postIt.ontouchstart = function(event) {
+                let shiftX = event.touches[0].clientX - postIt.getBoundingClientRect().left;
+                let shiftY = event.touches[0].clientY - postIt.getBoundingClientRect().top;
+
+                function moveAt(pageX, pageY) {
+                    postIt.style.left = pageX - shiftX + 'px';
+                    postIt.style.top = pageY - shiftY + 'px';
+                }
+
+                moveAt(event.touches[0].pageX, event.touches[0].pageY);
+
+                function onTouchMove(event) {
+                    moveAt(event.touches[0].pageX, event.touches[0].pageY);
+                }
+
+                document.addEventListener('touchmove', onTouchMove);
+
+                postIt.ontouchend = function() {
+                    document.removeEventListener('touchmove', onTouchMove);
+                    postIt.ontouchend = null;
                     savePostIts();
                 };
             };
