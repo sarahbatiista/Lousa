@@ -73,6 +73,13 @@
         // Função para desenhar na lousa
         let isDrawing = false;
         let canvas = document.getElementById('lousa');
+        let ctx = canvas.getContext('2d');
+
+        // Carregar o desenho do LocalStorage
+        let drawingData = localStorage.getItem('drawingData');
+        if (drawingData) {
+            ctx.putImageData(JSON.parse(drawingData), 0, 0);
+        }
 
         function startDrawing(event) {
             isDrawing = true;
@@ -81,12 +88,12 @@
 
         function stopDrawing() {
             isDrawing = false;
-            canvas.getContext('2d').beginPath();
+            ctx.beginPath();
+            saveDrawing();
         }
 
         function draw(event) {
             if (!isDrawing) return;
-            let ctx = canvas.getContext('2d');
             ctx.lineWidth = 5;
             ctx.lineCap = 'round';
             ctx.strokeStyle = '#fff';
@@ -95,6 +102,12 @@
             ctx.stroke();
             ctx.beginPath();
             ctx.moveTo(event.clientX, event.clientY);
+        }
+
+        // Função para salvar o desenho no LocalStorage
+        function saveDrawing() {
+            let drawing = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            localStorage.setItem('drawingData', JSON.stringify(drawing));
         }
 
         // Função para adicionar post-its
@@ -130,11 +143,74 @@
                 postIt.onmouseup = function() {
                     document.removeEventListener('mousemove', onMouseMove);
                     postIt.onmouseup = null;
+                    savePostIts();
                 };
             };
 
             document.body.appendChild(postIt);
+
+            savePostIts();
         }
+
+        // Função para salvar os post-its no LocalStorage
+        function savePostIts() {
+            let postIts = [];
+            let allPostIts = document.querySelectorAll('.post-it');
+            allPostIts.forEach(postIt => {
+                postIts.push({
+                    x: parseInt(postIt.style.left),
+                    y: parseInt(postIt.style.top),
+                    content: postIt.innerHTML
+                });
+            });
+            localStorage.setItem('postIts', JSON.stringify(postIts));
+        }
+
+        // Carregar os post-its do LocalStorage
+        function loadPostIts() {
+            let postIts = JSON.parse(localStorage.getItem('postIts'));
+            if (postIts) {
+                postIts.forEach(postItData => {
+                    let postIt = document.createElement('div');
+                    postIt.classList.add('post-it');
+                    postIt.contentEditable = true;
+                    postIt.style.left = `${postItData.x}px`;
+                    postIt.style.top = `${postItData.y}px`;
+                    postIt.innerHTML = postItData.content;
+
+                    postIt.onmousedown = function(event) {
+                        let shiftX = event.clientX - postIt.getBoundingClientRect().left;
+                        let shiftY = event.clientY - postIt.getBoundingClientRect().top;
+
+                        function moveAt(pageX, pageY) {
+                            postIt.style.left = pageX - shiftX + 'px';
+                            postIt.style.top = pageY - shiftY + 'px';
+                        }
+
+                        moveAt(event.pageX, event.pageY);
+
+                        function onMouseMove(event) {
+                            moveAt(event.pageX, event.pageY);
+                        }
+
+                        document.addEventListener('mousemove', onMouseMove);
+
+                        postIt.onmouseup = function() {
+                            document.removeEventListener('mousemove', onMouseMove);
+                            postIt.onmouseup = null;
+                            savePostIts();
+                        };
+                    };
+
+                    document.body.appendChild(postIt);
+                });
+            }
+        }
+
+        // Carregar post-its ao carregar a página
+        window.onload = function() {
+            loadPostIts();
+        };
     </script>
 </body>
 </html>
