@@ -34,6 +34,9 @@
             box-sizing: border-box;
             cursor: pointer;
             user-select: none; /* Para evitar seleção do texto do post-it */
+            overflow: hidden; /* Impede que o texto ultrapasse as bordas */
+            word-wrap: break-word; /* Garante a quebra de linha do texto dentro do post-it */
+            white-space: normal; /* Permite quebras de linha no texto */
         }
 
         /* Caixa para digitar no post-it */
@@ -43,8 +46,11 @@
             border: none;
             background-color: transparent;
             color: #000;
-            resize: none;
+            resize: none; /* Impede o redimensionamento do campo de texto */
             outline: none;
+            overflow: auto; /* Permite rolagem se o conteúdo ultrapassar */
+            padding: 0;
+            white-space: pre-wrap; /* Permite quebras de linha automáticas */
         }
 
         /* Botão para adicionar post-it */
@@ -274,4 +280,3 @@
     </script>
 </body>
 </html>
-    
